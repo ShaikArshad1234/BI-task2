@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blog</title>
+    <link rel="stylesheet" type="text/css" href="/css/styles.css">
+</head>
+<body>
+    <nav>
+        <a href="#" onclick="showHome()">Home</a>
+        <a href="#" onclick="showCompose()">Compose</a>
+    </nav>
+
+    <!-- Home Section -->
+    <div id="home-section">
+        <h1>Blog</h1>
+        <div id="posts-container">
+            <!-- Posts will be injected here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Compose Section -->
+    <div id="compose-section" style="display: none;">
+        <h1>Compose</h1>
+        <form id="compose-form" onsubmit="submitPost(event)">
+            <input type="text" name="postTitle" placeholder="Title" required>
+            <textarea name="postContent" placeholder="Content" required></textarea>
+            <button type="submit">Publish</button>
+        </form>
+    </div>
+
+    <!-- Post Section -->
+    <div id="post-section" style="display: none;">
+        <h1 id="post-title"></h1>
+        <p id="post-content"></p>
+        <a href="#" onclick="showHome()">Back</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchPosts();
+        });
+
+        function fetchPosts() {
+            fetch('/api/posts')
+                .then(response => response.json())
+                .then(posts => {
+                    const postsContainer = document.getElementById('posts-container');
+                    postsContainer.innerHTML = ''; // Clear any existing posts
+                    posts.forEach(post => {
+                        const postElement = document.createElement('div');
+                        postElement.innerHTML = `
+                            <h2><a href="#" onclick="showPost('${post._id}')">${post.title}</a></h2>
+                            <p>${post.content.substring(0, 100)}...</p>
+                        `;
+                        postsContainer.appendChild(postElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching posts:', error));
+        }
+
+        function showHome() {
+            document.getElementById('home-section').style.display = 'block';
+            document.getElementById('compose-section').style.display = 'none';
+            document.getElementById('post-section').style.display = 'none';
+        }
+
+        function showCompose() {
+            document.getElementById('home-section').style.display = 'none';
+            document.getElementById('compose-section').style.display = 'block';
+            document.getElementById('post-section').style.display = 'none';
+        }
+
+        function showPost(postId) {
+            fetch(`/api/posts/${postId}`)
+                .then(response => response.json())
+                .then(post => {
+                    document.getElementById('post-title').innerText = post.title;
+                    document.getElementById('post-content').innerText = post.content;
+                    document.getElementById('home-section').style.display = 'none';
+                    document.getElementById('compose-section').style.display = 'none';
+                    document.getElementById('post-section').style.display = 'block';
+                })
+                .catch(error => console.error('Error fetching post:', error));
+        }
+
+        function submitPost(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('compose-form'));
+            fetch('/compose', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    fetchPosts();
+                    showHome();
+                } else {
+                    console.error('Error composing post:', response.statusText);
+                }
+            })
+            .catch(error => console.error('Error composing post:', error));
+        }
+    </script>
+</body>
+</html>
